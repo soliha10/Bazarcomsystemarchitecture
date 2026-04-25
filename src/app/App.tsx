@@ -314,7 +314,11 @@ const INITIAL_ARCH_LAYERS: ArchLayer[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'phases' | 'architecture' | 'database'>('overview');
+  // Load active tab from localStorage or default to 'overview'
+  const [activeTab, setActiveTab] = useState<'overview' | 'phases' | 'architecture' | 'database'>(() => {
+    const saved = localStorage.getItem('bazarcom_active_tab');
+    return (saved as 'overview' | 'phases' | 'architecture' | 'database') || 'overview';
+  });
   const [activePhase, setActivePhase] = useState<number | null>(null);
   const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
   const [editingArchLayer, setEditingArchLayer] = useState<ArchLayer | null>(null);
@@ -330,6 +334,11 @@ export default function App() {
     const saved = localStorage.getItem('bazarcom_arch_layers');
     return saved ? JSON.parse(saved) : INITIAL_ARCH_LAYERS;
   });
+
+  // Save active tab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('bazarcom_active_tab', activeTab);
+  }, [activeTab]);
 
   // Save phases to localStorage whenever they change
   useEffect(() => {
