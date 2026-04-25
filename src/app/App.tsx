@@ -14,6 +14,7 @@ import { InteractiveFlowChart } from './components/InteractiveFlowChart';
 import { EditPhaseModal } from './components/EditPhaseModal';
 import { EditArchitectureModal } from './components/EditArchitectureModal';
 import { InfrastructureComponents } from './components/InfrastructureComponents';
+import { ERDiagram } from './components/ERDiagram';
 
 interface Phase {
   phase: number;
@@ -37,7 +38,7 @@ interface ArchLayer {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'phases' | 'architecture'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'phases' | 'architecture' | 'database'>('overview');
   const [activePhase, setActivePhase] = useState<number | null>(null);
   const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
   const [editingArchLayer, setEditingArchLayer] = useState<ArchLayer | null>(null);
@@ -463,7 +464,8 @@ export default function App() {
             {[
               { id: 'overview', label: 'Overview', icon: BarChart3 },
               { id: 'phases', label: 'Development Phases', icon: Layers },
-              { id: 'architecture', label: 'Architecture', icon: Database }
+              { id: 'architecture', label: 'Architecture', icon: Database },
+              { id: 'database', label: 'Database Schema', icon: Database }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -689,6 +691,67 @@ export default function App() {
                     <p>• HuggingFace Transformers</p>
                     <p>• Prometheus + Grafana</p>
                   </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'database' && (
+          <div className="space-y-8">
+            <ERDiagram />
+
+            {/* Database Details */}
+            <section className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Database Design Principles</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    Normalization
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>• Third Normal Form (3NF) compliance</li>
+                    <li>• Eliminates data redundancy</li>
+                    <li>• Maintains data integrity</li>
+                    <li>• Optimized for ACID transactions</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500" />
+                    Indexing Strategy
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>• Primary keys on all ID fields</li>
+                    <li>• Foreign key indexes for joins</li>
+                    <li>• B-tree index on match_key (products)</li>
+                    <li>• Composite index on (product_id, scraped_at)</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    Performance Optimization
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>• Partitioning on price_history by date</li>
+                    <li>• Materialized views for product_metrics</li>
+                    <li>• Connection pooling (PgBouncer)</li>
+                    <li>• Query result caching in Redis</li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-purple-500" />
+                    Data Pipeline
+                  </h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li>• raw_products → preprocessing → products</li>
+                    <li>• Automated ETL with Airflow</li>
+                    <li>• Daily aggregation jobs</li>
+                    <li>• ML model predictions stored in reviews</li>
+                  </ul>
                 </div>
               </div>
             </section>
