@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import {
   TrendingUp, Target, Zap, Database, ShoppingCart,
@@ -37,13 +37,7 @@ interface ArchLayer {
   metrics?: { label: string; value: string }[];
 }
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'phases' | 'architecture' | 'database'>('overview');
-  const [activePhase, setActivePhase] = useState<number | null>(null);
-  const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
-  const [editingArchLayer, setEditingArchLayer] = useState<ArchLayer | null>(null);
-
-  const [phases, setPhases] = useState<Phase[]>([
+const INITIAL_PHASES: Phase[] = [
     {
       phase: 1,
       title: 'Data Ingestion',
@@ -234,29 +228,9 @@ export default function App() {
       technologies: ['FastAPI', 'MLflow', 'Docker', 'Prometheus', 'Grafana'],
       deliverables: ['ML API endpoint', 'Model monitoring dashboard', 'Deployment pipeline']
     }
-  ]);
+];
 
-  const handlePhaseUpdate = (updatedPhase: Phase) => {
-    setPhases(phases.map(p => p.phase === updatedPhase.phase ? updatedPhase : p));
-  };
-
-  const timeline = [
-    { week: 1, title: 'Data Ingestion', description: 'Scraping + Docker', color: '#3B82F6' },
-    { week: 2, title: 'Preprocessing', description: 'Airflow DAG Setup', color: '#F59E0B' },
-    { week: 3, title: 'Product Matching', description: 'Core Logic', color: '#EF4444' },
-    { week: 4, title: 'Backend + Agg', description: 'API + Aggregation', color: '#059669' },
-    { week: 5, title: 'Dockerization', description: 'Frontend + Deploy', color: '#64748B' },
-    { week: 6, title: 'AI/ML', description: 'MLflow + Models', color: '#7C3AED' }
-  ];
-
-  const kpis = [
-    { icon: Target, label: 'Matching Accuracy', value: '96.8%', target: '> 95%', color: '#059669' },
-    { icon: ShoppingCart, label: 'Avg Offers per Product', value: '5.2', target: '> 5 stores', color: '#3B82F6' },
-    { icon: TrendingUp, label: 'Pipeline Success Rate', value: '98.5%', target: '> 95%', color: '#F59E0B' },
-    { icon: Zap, label: 'API Response Time', value: '145ms', target: '< 200ms', color: '#EF4444' }
-  ];
-
-  const [architectureLayers, setArchitectureLayers] = useState<ArchLayer[]>([
+const INITIAL_ARCH_LAYERS: ArchLayer[] = [
     {
       name: 'Data Ingestion Layer',
       icon: 'database' as const,
@@ -337,11 +311,59 @@ export default function App() {
         { label: 'Users', value: '50K+' }
       ]
     }
-  ]);
+];
+
+export default function App() {
+  const [activeTab, setActiveTab] = useState<'overview' | 'phases' | 'architecture' | 'database'>('overview');
+  const [activePhase, setActivePhase] = useState<number | null>(null);
+  const [editingPhase, setEditingPhase] = useState<Phase | null>(null);
+  const [editingArchLayer, setEditingArchLayer] = useState<ArchLayer | null>(null);
+
+  // Load phases from localStorage or use initial data
+  const [phases, setPhases] = useState<Phase[]>(() => {
+    const saved = localStorage.getItem('bazarcom_phases');
+    return saved ? JSON.parse(saved) : INITIAL_PHASES;
+  });
+
+  // Load architecture layers from localStorage or use initial data
+  const [architectureLayers, setArchitectureLayers] = useState<ArchLayer[]>(() => {
+    const saved = localStorage.getItem('bazarcom_arch_layers');
+    return saved ? JSON.parse(saved) : INITIAL_ARCH_LAYERS;
+  });
+
+  // Save phases to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('bazarcom_phases', JSON.stringify(phases));
+  }, [phases]);
+
+  // Save architecture layers to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('bazarcom_arch_layers', JSON.stringify(architectureLayers));
+  }, [architectureLayers]);
+
+  const handlePhaseUpdate = (updatedPhase: Phase) => {
+    setPhases(phases.map(p => p.phase === updatedPhase.phase ? updatedPhase : p));
+  };
 
   const handleArchLayerUpdate = (updatedLayer: ArchLayer) => {
     setArchitectureLayers(architectureLayers.map(l => l.name === updatedLayer.name ? updatedLayer : l));
   };
+
+  const timeline = [
+    { week: 1, title: 'Data Ingestion', description: 'Scraping + Docker', color: '#3B82F6' },
+    { week: 2, title: 'Preprocessing', description: 'Airflow DAG Setup', color: '#F59E0B' },
+    { week: 3, title: 'Product Matching', description: 'Core Logic', color: '#EF4444' },
+    { week: 4, title: 'Backend + Agg', description: 'API + Aggregation', color: '#059669' },
+    { week: 5, title: 'Dockerization', description: 'Frontend + Deploy', color: '#64748B' },
+    { week: 6, title: 'AI/ML', description: 'MLflow + Models', color: '#7C3AED' }
+  ];
+
+  const kpis = [
+    { icon: Target, label: 'Matching Accuracy', value: '96.8%', target: '> 95%', color: '#059669' },
+    { icon: ShoppingCart, label: 'Avg Offers per Product', value: '5.2', target: '> 5 stores', color: '#3B82F6' },
+    { icon: TrendingUp, label: 'Pipeline Success Rate', value: '98.5%', target: '> 95%', color: '#F59E0B' },
+    { icon: Zap, label: 'API Response Time', value: '145ms', target: '< 200ms', color: '#EF4444' }
+  ];
 
   const interactiveFlows = [
     {

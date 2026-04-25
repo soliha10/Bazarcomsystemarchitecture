@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Key, Database, Link, Edit2, Plus, Trash2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EditTableModal } from './EditTableModal';
 
 interface TableField {
@@ -26,13 +26,7 @@ interface Relationship {
   toField: string;
 }
 
-export function ERDiagram() {
-  const [zoom, setZoom] = useState(1);
-  const [editingTable, setEditingTable] = useState<Table | null>(null);
-  const [isCreatingTable, setIsCreatingTable] = useState(false);
-  const [hoveredTable, setHoveredTable] = useState<string | null>(null);
-  const [draggingTable, setDraggingTable] = useState<string | null>(null);
-  const [tables, setTables] = useState<Table[]>([
+const INITIAL_TABLES: Table[] = [
     {
       name: 'products',
       color: '#10B981',
@@ -152,7 +146,25 @@ export function ERDiagram() {
         { name: 'created_at', type: 'TIMESTAMP' }
       ]
     }
-  ]);
+];
+
+export function ERDiagram() {
+  const [zoom, setZoom] = useState(1);
+  const [editingTable, setEditingTable] = useState<Table | null>(null);
+  const [isCreatingTable, setIsCreatingTable] = useState(false);
+  const [hoveredTable, setHoveredTable] = useState<string | null>(null);
+  const [draggingTable, setDraggingTable] = useState<string | null>(null);
+
+  // Load tables from localStorage or use initial data
+  const [tables, setTables] = useState<Table[]>(() => {
+    const saved = localStorage.getItem('bazarcom_tables');
+    return saved ? JSON.parse(saved) : INITIAL_TABLES;
+  });
+
+  // Save tables to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('bazarcom_tables', JSON.stringify(tables));
+  }, [tables]);
 
   const handleTableUpdate = (updatedTable: Table) => {
     setTables(tables.map(t => t.name === editingTable?.name ? updatedTable : t));
