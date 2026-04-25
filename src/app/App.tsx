@@ -13,6 +13,7 @@ import { ArchitectureLayer } from './components/ArchitectureLayer';
 import { InteractiveFlowChart } from './components/InteractiveFlowChart';
 import { EditPhaseModal } from './components/EditPhaseModal';
 import { EditArchitectureModal } from './components/EditArchitectureModal';
+import { InfrastructureComponents } from './components/InfrastructureComponents';
 
 interface Phase {
   phase: number;
@@ -50,10 +51,11 @@ export default function App() {
       color: '#3B82F6',
       steps: [
         'Select target marketplace (Amazon, eBay, etc.)',
-        'Send HTTP request / API call',
+        'Trigger Docker containerized scraper',
+        'Send HTTP request to marketplace API',
         'Receive HTML or JSON response',
-        'Parse product data (title, price, rating, reviews)',
-        'Store raw data in database'
+        'Parse product data (title, price, rating, reviews, image_url)',
+        'Store raw data in PostgreSQL / Data Lake'
       ],
       decisions: [
         {
@@ -62,21 +64,39 @@ export default function App() {
           no: 'Discard and log error'
         }
       ],
-      technologies: ['Python', 'Scrapy', 'BeautifulSoup', 'Requests'],
-      deliverables: ['Scraper modules for 5+ marketplaces', 'Raw data storage schema', 'Error logging system']
+      technologies: ['Docker', 'Scrapy', 'BeautifulSoup', 'PostgreSQL', 'Amazon S3'],
+      deliverables: ['Dockerized scraper service', 'Raw data storage schema', 'Data validation module']
     },
     {
       phase: 2,
+      title: 'Workflow Orchestration',
+      week: 'Week 1-2',
+      status: 'completed' as const,
+      color: '#8B5CF6',
+      steps: [
+        'Define DAG / pipeline in Airflow or Dagster',
+        'Schedule scraping jobs (hourly/daily)',
+        'Trigger preprocessing tasks automatically',
+        'Set up failure alerts and retries',
+        'Monitor execution logs and task status'
+      ],
+      decisions: [],
+      technologies: ['Apache Airflow', 'Dagster', 'Docker Compose', 'Prometheus'],
+      deliverables: ['Orchestration DAGs', 'Scheduling config', 'Monitoring dashboard']
+    },
+    {
+      phase: 3,
       title: 'Data Preprocessing',
       week: 'Week 2',
       status: 'completed' as const,
       color: '#F59E0B',
       steps: [
+        'Load raw data from database',
         'Clean and standardize text data',
         'Normalize price formats and currency',
         'Clean rating and review count fields',
-        'Extract key features (brand, model, specs)',
-        'Generate clean dataset for matching'
+        'Extract features (brand, model, RAM, storage)',
+        'Store clean data in processed tables'
       ],
       decisions: [
         {
@@ -85,11 +105,11 @@ export default function App() {
           no: 'Mark as low quality data'
         }
       ],
-      technologies: ['Pandas', 'NumPy', 'Regex', 'NLTK'],
+      technologies: ['Pandas', 'NumPy', 'Regex', 'NLTK', 'PySpark'],
       deliverables: ['Data cleaning pipeline', 'Feature extraction module', 'Quality scoring system']
     },
     {
-      phase: 3,
+      phase: 4,
       title: 'Product Matching',
       week: 'Week 3 - Critical Phase',
       status: 'in-progress' as const,
@@ -99,7 +119,7 @@ export default function App() {
         'Normalize model names across marketplaces',
         'Group similar products using fuzzy matching',
         'Detect duplicates and variants',
-        'Update product database with matched offers'
+        'Store in Products Table + Offers Table (PostgreSQL)'
       ],
       decisions: [
         {
@@ -108,11 +128,11 @@ export default function App() {
           no: 'Create new product entry'
         }
       ],
-      technologies: ['FuzzyWuzzy', 'Levenshtein', 'PostgreSQL', 'Redis'],
+      technologies: ['FuzzyWuzzy', 'Levenshtein', 'PostgreSQL', 'Redis Cache'],
       deliverables: ['Matching algorithm (95%+ accuracy)', 'Duplicate detection system', 'Product merge logic']
     },
     {
-      phase: 4,
+      phase: 5,
       title: 'Aggregation Engine',
       week: 'Week 4',
       status: 'pending' as const,
@@ -121,63 +141,97 @@ export default function App() {
         'Calculate minimum price across stores',
         'Calculate maximum price for reference',
         'Compute average rating from all sources',
-        'Count total reviews',
+        'Count total reviews across platforms',
         'Rank offers by price (cheapest first)',
         'Generate comprehensive product summary'
       ],
-      technologies: ['PostgreSQL Views', 'Redis Cache', 'Pandas'],
+      technologies: ['PostgreSQL Views', 'Redis Cache', 'Apache Spark'],
       deliverables: ['Aggregation queries', 'Caching strategy', 'Price ranking algorithm']
     },
     {
-      phase: 5,
+      phase: 6,
       title: 'Backend API Development',
       week: 'Week 4',
       status: 'pending' as const,
       color: '#059669',
       steps: [
-        'Build Products API (list all products)',
-        'Build Product Details API (single product)',
-        'Build Search API (keyword search)',
-        'Build Compare API (price comparison)',
-        'Implement caching layer',
-        'Add rate limiting and security'
+        'Develop API using FastAPI or Django',
+        'Create /products endpoint (list all)',
+        'Create /products/{id} endpoint (details)',
+        'Create /search endpoint (keyword search)',
+        'Create /compare endpoint (price comparison)',
+        'Implement caching, rate limiting, and security'
       ],
-      technologies: ['FastAPI', 'Pydantic', 'JWT', 'Elasticsearch'],
-      deliverables: ['REST API endpoints', 'API documentation (OpenAPI)', 'Authentication system']
+      technologies: ['FastAPI', 'Pydantic', 'JWT', 'Redis', 'Nginx'],
+      deliverables: ['REST API endpoints', 'OpenAPI documentation', 'Authentication system']
     },
     {
-      phase: 6,
+      phase: 7,
+      title: 'Dockerization & Deployment',
+      week: 'Week 4-5',
+      status: 'pending' as const,
+      color: '#64748B',
+      steps: [
+        'Containerize scraper service with Docker',
+        'Containerize backend API',
+        'Containerize database (PostgreSQL)',
+        'Containerize Airflow/Dagster',
+        'Create Docker Compose orchestration file',
+        'Set up CI/CD pipeline'
+      ],
+      technologies: ['Docker', 'Docker Compose', 'Kubernetes', 'GitHub Actions'],
+      deliverables: ['Dockerfiles for all services', 'docker-compose.yml', 'K8s manifests']
+    },
+    {
+      phase: 8,
       title: 'Frontend User Flow',
       week: 'Week 5',
       status: 'pending' as const,
       color: '#0891B2',
       steps: [
         'User enters search query',
-        'Display product list with prices',
-        'Click product to view details',
-        'Show price comparison table',
-        'Display historical price trends',
-        'Add to wishlist / price alerts'
+        'Send search request to API',
+        'API returns product list',
+        'Display products with prices',
+        'User clicks product for details',
+        'Show price comparison view with chart'
       ],
-      technologies: ['React', 'TypeScript', 'Tailwind CSS', 'Recharts'],
+      technologies: ['React', 'TypeScript', 'Tailwind CSS', 'Recharts', 'Axios'],
       deliverables: ['Product search UI', 'Comparison dashboard', 'Price alert system']
     },
     {
-      phase: 7,
-      title: 'AI Layer Integration',
+      phase: 9,
+      title: 'AI/ML Pipeline',
       week: 'Week 6',
       status: 'pending' as const,
       color: '#7C3AED',
       steps: [
-        'Collect reviews from all sources',
+        'Collect review data from all sources',
+        'Train NLP model for sentiment analysis',
         'Perform sentiment analysis on reviews',
         'Extract pros and cons automatically',
-        'Predict future price trends using ML',
-        'Generate AI-powered recommendations',
-        'Deploy and monitor AI models'
+        'Use MLflow to track experiments and log models',
+        'Version models and register best model'
       ],
-      technologies: ['TensorFlow', 'Scikit-learn', 'NLTK', 'Transformers'],
-      deliverables: ['Sentiment analysis model', 'Price prediction ML model', 'Recommendation engine']
+      technologies: ['MLflow', 'TensorFlow', 'HuggingFace', 'NLTK', 'Python'],
+      deliverables: ['Sentiment analysis model', 'MLflow tracking server', 'Model registry']
+    },
+    {
+      phase: 10,
+      title: 'Model Deployment',
+      week: 'Week 6',
+      status: 'pending' as const,
+      color: '#A855F7',
+      steps: [
+        'Deploy model as API endpoint',
+        'Integrate ML API with backend',
+        'Set up model monitoring and logging',
+        'Implement A/B testing for models',
+        'Create fallback mechanism',
+        'Monitor prediction latency and accuracy'
+      ],
+      technologies: ['FastAPI', 'MLflow', 'Docker', 'Prometheus', 'Grafana'],
+      deliverables: ['ML API endpoint', 'Model monitoring dashboard', 'Deployment pipeline']
     }
   ]);
 
@@ -186,84 +240,100 @@ export default function App() {
   };
 
   const timeline = [
-    { week: 1, title: 'Data Collection', description: 'Web Scraping & APIs', color: '#3B82F6' },
-    { week: 2, title: 'Preprocessing', description: 'Data Cleaning', color: '#F59E0B' },
-    { week: 3, title: 'Product Matching', description: 'Core Algorithm', color: '#EF4444' },
-    { week: 4, title: 'Backend API', description: 'REST Endpoints', color: '#059669' },
-    { week: 5, title: 'Frontend UI', description: 'User Interface', color: '#0891B2' },
-    { week: 6, title: 'AI Features', description: 'ML Integration', color: '#7C3AED' }
+    { week: 1, title: 'Data Ingestion', description: 'Scraping + Docker', color: '#3B82F6' },
+    { week: 2, title: 'Preprocessing', description: 'Airflow DAG Setup', color: '#F59E0B' },
+    { week: 3, title: 'Product Matching', description: 'Core Logic', color: '#EF4444' },
+    { week: 4, title: 'Backend + Agg', description: 'API + Aggregation', color: '#059669' },
+    { week: 5, title: 'Dockerization', description: 'Frontend + Deploy', color: '#64748B' },
+    { week: 6, title: 'AI/ML', description: 'MLflow + Models', color: '#7C3AED' }
   ];
 
   const kpis = [
-    { icon: ShoppingCart, label: 'Avg Offers per Product', value: '5.2', target: '> 5 stores', color: '#3B82F6' },
     { icon: Target, label: 'Matching Accuracy', value: '96.8%', target: '> 95%', color: '#059669' },
-    { icon: Database, label: 'Data Completeness', value: '92.5%', target: '> 90%', color: '#F59E0B' },
+    { icon: ShoppingCart, label: 'Avg Offers per Product', value: '5.2', target: '> 5 stores', color: '#3B82F6' },
+    { icon: TrendingUp, label: 'Pipeline Success Rate', value: '98.5%', target: '> 95%', color: '#F59E0B' },
     { icon: Zap, label: 'API Response Time', value: '145ms', target: '< 200ms', color: '#EF4444' }
   ];
 
   const [architectureLayers, setArchitectureLayers] = useState<ArchLayer[]>([
     {
-      name: 'Data Layer',
+      name: 'Data Ingestion Layer',
       icon: 'database' as const,
       color: '#3B82F6',
-      description: 'Data storage and persistence',
+      description: 'Raw data collection from marketplaces',
       components: [
-        'PostgreSQL - Product catalog',
-        'Redis - Cache layer',
-        'S3 - Image storage',
-        'Elasticsearch - Search index'
+        'Dockerized Scrapy spiders',
+        'BeautifulSoup HTML parsers',
+        'PostgreSQL raw data tables',
+        'Amazon S3 / Data Lake storage'
       ],
       metrics: [
-        { label: 'Capacity', value: '10TB' },
+        { label: 'Throughput', value: '10K/min' },
         { label: 'Uptime', value: '99.9%' }
       ]
     },
     {
-      name: 'Processing Layer',
+      name: 'Data Processing Layer',
       icon: 'cpu' as const,
       color: '#F59E0B',
-      description: 'Data extraction and transformation',
+      description: 'Data cleaning, transformation, and matching',
       components: [
-        'Scrapy - Web scraping framework',
-        'Pandas - Data preprocessing',
-        'Fuzzy matching algorithm',
-        'ETL Pipeline (Airflow)'
+        'Pandas / PySpark data cleaning',
+        'Feature extraction pipelines',
+        'Fuzzy matching algorithm (FuzzyWuzzy)',
+        'Product deduplication engine'
       ],
       metrics: [
-        { label: 'Throughput', value: '10K/min' },
-        { label: 'Accuracy', value: '96%' }
+        { label: 'Processing', value: '50K/hr' },
+        { label: 'Accuracy', value: '96.8%' }
       ]
     },
     {
-      name: 'Backend Layer',
+      name: 'Data Infrastructure Layer',
+      icon: 'server' as const,
+      color: '#8B5CF6',
+      description: 'Orchestration, containerization, and CI/CD',
+      components: [
+        'Apache Airflow / Dagster (orchestration)',
+        'Docker + Docker Compose',
+        'Kubernetes cluster (production)',
+        'GitHub Actions CI/CD pipeline'
+      ],
+      metrics: [
+        { label: 'Pipelines', value: '15+' },
+        { label: 'Success', value: '98.5%' }
+      ]
+    },
+    {
+      name: 'Backend & API Layer',
       icon: 'server' as const,
       color: '#059669',
-      description: 'API and business logic',
+      description: 'REST API endpoints and business logic',
       components: [
-        'FastAPI - REST API',
-        'GraphQL - Flexible queries',
-        'JWT Authentication',
-        'Rate limiting middleware'
+        'FastAPI REST API server',
+        'PostgreSQL aggregated views',
+        'Redis caching layer',
+        'JWT authentication + rate limiting'
       ],
       metrics: [
         { label: 'Latency', value: '145ms' },
-        { label: 'RPS', value: '5K' }
+        { label: 'RPS', value: '5K+' }
       ]
     },
     {
-      name: 'User & AI Layer',
+      name: 'AI/ML Layer + User Layer',
       icon: 'users' as const,
       color: '#7C3AED',
-      description: 'User interface and AI features',
+      description: 'Machine learning models and user interface',
       components: [
-        'React + TypeScript frontend',
-        'TensorFlow - Price prediction',
-        'NLTK - Sentiment analysis',
-        'Recommendation engine'
+        'MLflow (experiment tracking & model registry)',
+        'Sentiment analysis NLP model',
+        'Price prediction model (optional)',
+        'React + TypeScript frontend UI'
       ],
       metrics: [
-        { label: 'Users', value: '50K+' },
-        { label: 'Score', value: '4.8/5' }
+        { label: 'Model Acc', value: '94%' },
+        { label: 'Users', value: '50K+' }
       ]
     }
   ]);
@@ -444,6 +514,11 @@ export default function App() {
               </div>
             </section>
 
+            {/* Infrastructure Components */}
+            <section>
+              <InfrastructureComponents />
+            </section>
+
             {/* Success Factors */}
             <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <motion.div
@@ -458,15 +533,15 @@ export default function App() {
                 <ul className="space-y-2 text-sm text-gray-700">
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2" />
-                    Product matching accuracy (Week 3)
+                    Product matching accuracy (Week 3 - Critical)
                   </li>
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2" />
-                    Real-time price tracking system
+                    Workflow orchestration with Airflow
                   </li>
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2" />
-                    Scalable data pipeline architecture
+                    MLOps pipeline with MLflow
                   </li>
                 </ul>
               </motion.div>
@@ -484,15 +559,15 @@ export default function App() {
                 <ul className="space-y-2 text-sm text-gray-700">
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-2" />
-                    Variant normalization (RAM, storage)
+                    Variant normalization across marketplaces
                   </li>
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-2" />
-                    Anti-scraping countermeasures
+                    Anti-scraping mechanisms and rate limits
                   </li>
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-2" />
-                    Duplicate product detection
+                    Containerization and deployment complexity
                   </li>
                 </ul>
               </motion.div>
@@ -510,15 +585,15 @@ export default function App() {
                 <ul className="space-y-2 text-sm text-gray-700">
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2" />
-                    10,000+ products indexed
+                    10,000+ products with 5+ offers each
                   </li>
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2" />
-                    5+ marketplace integrations
+                    Fully Dockerized microservices
                   </li>
                   <li className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2" />
-                    AI-powered recommendations
+                    MLflow-managed ML models in production
                   </li>
                 </ul>
               </motion.div>
@@ -577,33 +652,42 @@ export default function App() {
 
             {/* Tech Stack */}
             <section className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-              <h3 className="text-xl font-bold text-gray-900 mb-6">Technology Stack</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-6">Production Technology Stack</h3>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-3 text-sm">Frontend</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3 text-sm">Data Ingestion</h4>
                   <div className="space-y-2 text-sm text-gray-700">
-                    <p>• React + TypeScript</p>
-                    <p>• Tailwind CSS</p>
-                    <p>• Recharts (visualizations)</p>
-                    <p>• React Query</p>
+                    <p>• Docker + Docker Compose</p>
+                    <p>• Scrapy / BeautifulSoup</p>
+                    <p>• PostgreSQL</p>
+                    <p>• Amazon S3</p>
                   </div>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-3 text-sm">Backend</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3 text-sm">Orchestration</h4>
+                  <div className="space-y-2 text-sm text-gray-700">
+                    <p>• Apache Airflow</p>
+                    <p>• Dagster (alternative)</p>
+                    <p>• Kubernetes (prod)</p>
+                    <p>• GitHub Actions</p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-3 text-sm">Backend & API</h4>
                   <div className="space-y-2 text-sm text-gray-700">
                     <p>• FastAPI (Python)</p>
-                    <p>• PostgreSQL</p>
-                    <p>• Redis Cache</p>
-                    <p>• Celery (task queue)</p>
+                    <p>• PostgreSQL + Redis</p>
+                    <p>• Nginx (reverse proxy)</p>
+                    <p>• JWT Authentication</p>
                   </div>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-900 mb-3 text-sm">AI/ML</h4>
+                  <h4 className="font-semibold text-gray-900 mb-3 text-sm">MLOps & AI</h4>
                   <div className="space-y-2 text-sm text-gray-700">
-                    <p>• TensorFlow</p>
-                    <p>• Scikit-learn</p>
-                    <p>• NLTK (NLP)</p>
-                    <p>• Pandas (preprocessing)</p>
+                    <p>• MLflow (tracking)</p>
+                    <p>• TensorFlow / PyTorch</p>
+                    <p>• HuggingFace Transformers</p>
+                    <p>• Prometheus + Grafana</p>
                   </div>
                 </div>
               </div>
