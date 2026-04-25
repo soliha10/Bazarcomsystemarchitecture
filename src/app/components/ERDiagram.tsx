@@ -1,6 +1,6 @@
-import { motion } from 'motion/react';
-import { Key, Database, Link, Edit2, Plus, Trash2, Move, ZoomIn, ZoomOut } from 'lucide-react';
-import { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Key, Database, Link, Edit2, Plus, Trash2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { useState } from 'react';
 import { EditTableModal } from './EditTableModal';
 
 interface TableField {
@@ -28,19 +28,15 @@ interface Relationship {
 
 export function ERDiagram() {
   const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedTable, setDraggedTable] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [editingTable, setEditingTable] = useState<Table | null>(null);
   const [isCreatingTable, setIsCreatingTable] = useState(false);
-  const svgRef = useRef<SVGSVGElement>(null);
+  const [hoveredTable, setHoveredTable] = useState<string | null>(null);
   const [tables, setTables] = useState<Table[]>([
     {
       name: 'products',
       color: '#10B981',
       category: 'Core',
-      position: { x: 500, y: 200 },
+      position: { x: 600, y: 150 },
       fields: [
         { name: 'id', type: 'SERIAL', isPrimaryKey: true },
         { name: 'name', type: 'VARCHAR(500)' },
@@ -56,7 +52,7 @@ export function ERDiagram() {
       name: 'offers',
       color: '#F59E0B',
       category: 'Offers',
-      position: { x: 500, y: 480 },
+      position: { x: 600, y: 500 },
       fields: [
         { name: 'id', type: 'SERIAL', isPrimaryKey: true },
         { name: 'product_id', type: 'INTEGER', isForeignKey: true },
@@ -72,7 +68,7 @@ export function ERDiagram() {
       name: 'stores',
       color: '#3B82F6',
       category: 'Ingestion',
-      position: { x: 120, y: 200 },
+      position: { x: 150, y: 150 },
       fields: [
         { name: 'id', type: 'SERIAL', isPrimaryKey: true },
         { name: 'name', type: 'VARCHAR(100)' },
@@ -86,7 +82,7 @@ export function ERDiagram() {
       name: 'raw_products',
       color: '#3B82F6',
       category: 'Ingestion',
-      position: { x: 120, y: 480 },
+      position: { x: 150, y: 500 },
       fields: [
         { name: 'id', type: 'SERIAL', isPrimaryKey: true },
         { name: 'store_id', type: 'INTEGER', isForeignKey: true },
@@ -101,7 +97,7 @@ export function ERDiagram() {
       name: 'product_metrics',
       color: '#EF4444',
       category: 'Analytics',
-      position: { x: 880, y: 200 },
+      position: { x: 1050, y: 150 },
       fields: [
         { name: 'id', type: 'SERIAL', isPrimaryKey: true },
         { name: 'product_id', type: 'INTEGER', isForeignKey: true },
@@ -117,7 +113,7 @@ export function ERDiagram() {
       name: 'price_history',
       color: '#EF4444',
       category: 'Analytics',
-      position: { x: 880, y: 480 },
+      position: { x: 1050, y: 500 },
       fields: [
         { name: 'id', type: 'SERIAL', isPrimaryKey: true },
         { name: 'offer_id', type: 'INTEGER', isForeignKey: true },
@@ -129,7 +125,7 @@ export function ERDiagram() {
       name: 'reviews',
       color: '#7C3AED',
       category: 'AI Layer',
-      position: { x: 1200, y: 200 },
+      position: { x: 1500, y: 150 },
       fields: [
         { name: 'id', type: 'SERIAL', isPrimaryKey: true },
         { name: 'product_id', type: 'INTEGER', isForeignKey: true },
@@ -144,7 +140,7 @@ export function ERDiagram() {
       name: 'ml_models',
       color: '#7C3AED',
       category: 'AI Layer',
-      position: { x: 1200, y: 480 },
+      position: { x: 1500, y: 500 },
       fields: [
         { name: 'id', type: 'SERIAL', isPrimaryKey: true },
         { name: 'model_name', type: 'VARCHAR(100)' },
@@ -171,51 +167,6 @@ export function ERDiagram() {
     }
   };
 
-  const handleMouseDown = (e: React.MouseEvent, tableName: string) => {
-    if ((e.target as HTMLElement).closest('.edit-button, .delete-button')) return;
-
-    const table = tables.find(t => t.name === tableName);
-    if (!table) return;
-
-    const svg = svgRef.current;
-    if (!svg) return;
-
-    const point = svg.createSVGPoint();
-    point.x = e.clientX;
-    point.y = e.clientY;
-    const svgPoint = point.matrixTransform(svg.getScreenCTM()?.inverse());
-
-    setDraggedTable(tableName);
-    setDragOffset({
-      x: svgPoint.x - table.position.x,
-      y: svgPoint.y - table.position.y
-    });
-    setIsDragging(true);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging || !draggedTable) return;
-
-    const svg = svgRef.current;
-    if (!svg) return;
-
-    const point = svg.createSVGPoint();
-    point.x = e.clientX;
-    point.y = e.clientY;
-    const svgPoint = point.matrixTransform(svg.getScreenCTM()?.inverse());
-
-    setTables(tables.map(t =>
-      t.name === draggedTable
-        ? { ...t, position: { x: svgPoint.x - dragOffset.x, y: svgPoint.y - dragOffset.y } }
-        : t
-    ));
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-    setDraggedTable(null);
-  };
-
   const relationships: Relationship[] = [
     { from: 'products', to: 'offers', type: '1:N', fromField: 'id', toField: 'product_id' },
     { from: 'stores', to: 'offers', type: '1:N', fromField: 'id', toField: 'store_id' },
@@ -230,39 +181,56 @@ export function ERDiagram() {
     const toTable = tables.find(t => t.name === rel.to);
     if (!fromTable || !toTable) return null;
 
-    const fromX = fromTable.position.x + 150;
-    const fromY = fromTable.position.y + 120;
+    const fromX = fromTable.position.x + 320;
+    const fromY = fromTable.position.y + 60;
     const toX = toTable.position.x;
-    const toY = toTable.position.y + 120;
+    const toY = toTable.position.y + 60;
 
     const midX = (fromX + toX) / 2;
-    const isHorizontal = Math.abs(toX - fromX) > Math.abs(toY - fromY);
 
-    let path;
-    if (isHorizontal) {
-      path = `M ${fromX} ${fromY} L ${midX} ${fromY} L ${midX} ${toY} L ${toX} ${toY}`;
-    } else {
-      path = `M ${fromX} ${fromY} L ${fromX} ${(fromY + toY) / 2} L ${toX} ${(fromY + toY) / 2} L ${toX} ${toY}`;
-    }
+    const path = `M ${fromX} ${fromY} C ${fromX + 50} ${fromY}, ${toX - 50} ${toY}, ${toX} ${toY}`;
 
     return (
       <g key={`${rel.from}-${rel.to}`}>
+        <defs>
+          <marker
+            id={`arrow-${rel.from}-${rel.to}`}
+            markerWidth="10"
+            markerHeight="10"
+            refX="9"
+            refY="3"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M0,0 L0,6 L9,3 z" fill="#64748B" />
+          </marker>
+        </defs>
         <path
           d={path}
-          stroke="#94A3B8"
-          strokeWidth="2"
+          stroke="#64748B"
+          strokeWidth="2.5"
           fill="none"
-          strokeDasharray={rel.type === '1:1' ? '5,5' : '0'}
+          strokeDasharray={rel.type === '1:1' ? '8,4' : '0'}
+          markerEnd={`url(#arrow-${rel.from}-${rel.to})`}
+          opacity="0.7"
         />
-        <circle cx={toX} cy={toY} r="4" fill="#94A3B8" />
+        <rect
+          x={midX - 25}
+          y={fromY - 20}
+          width="50"
+          height="20"
+          fill="white"
+          stroke="#64748B"
+          strokeWidth="1.5"
+          rx="4"
+        />
         <text
           x={midX}
-          y={isHorizontal ? fromY - 10 : (fromY + toY) / 2 - 10}
-          fontSize="11"
-          fill="#475569"
-          fontWeight="600"
+          y={fromY - 6}
+          fontSize="12"
+          fill="#1E293B"
+          fontWeight="700"
           textAnchor="middle"
-          className="bg-white"
         >
           {rel.type}
         </text>
@@ -271,70 +239,85 @@ export function ERDiagram() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-2xl shadow-2xl p-8 border border-gray-200">
+      <div className="mb-8 flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Database Schema (ER Diagram)</h2>
-          <p className="text-gray-600 text-sm">Entity-Relationship diagram for Bazarcom platform</p>
+          <div className="flex items-center gap-3 mb-2">
+            <Database className="w-8 h-8 text-blue-600" />
+            <h2 className="text-3xl font-bold text-gray-900">Database Schema</h2>
+          </div>
+          <p className="text-gray-600">
+            Entity-Relationship Diagram • PostgreSQL Architecture
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsCreatingTable(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-lg shadow-blue-500/30"
           >
             <Plus className="w-5 h-5" />
             Add Table
           </button>
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-2 bg-white/80 backdrop-blur rounded-xl p-1.5 shadow-md border border-gray-200">
             <button
               onClick={() => setZoom(Math.max(0.5, zoom - 0.1))}
-              className="p-2 hover:bg-white rounded transition-colors"
-              title="Zoom Out"
+              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
             >
               <ZoomOut className="w-4 h-4 text-gray-700" />
             </button>
-            <span className="text-sm font-medium text-gray-700 min-w-[60px] text-center">
+            <span className="text-sm font-bold text-gray-800 min-w-[65px] text-center px-2">
               {Math.round(zoom * 100)}%
             </span>
             <button
-              onClick={() => setZoom(Math.min(2, zoom + 0.1))}
-              className="p-2 hover:bg-white rounded transition-colors"
-              title="Zoom In"
+              onClick={() => setZoom(Math.min(1.5, zoom + 0.1))}
+              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
             >
               <ZoomIn className="w-4 h-4 text-gray-700" />
             </button>
           </div>
+          <button
+            onClick={() => setZoom(1)}
+            className="p-2.5 bg-white/80 backdrop-blur hover:bg-white rounded-xl transition-colors shadow-md border border-gray-200"
+            title="Reset Zoom"
+          >
+            <Maximize2 className="w-5 h-5 text-gray-700" />
+          </button>
         </div>
       </div>
 
       {/* Legend */}
-      <div className="mb-6 flex flex-wrap gap-4">
+      <div className="mb-6 flex flex-wrap gap-3">
         {[
-          { category: 'Core', color: '#10B981' },
-          { category: 'Offers', color: '#F59E0B' },
-          { category: 'Ingestion', color: '#3B82F6' },
-          { category: 'Analytics', color: '#EF4444' },
-          { category: 'AI Layer', color: '#7C3AED' }
+          { category: 'Core Tables', color: '#10B981', icon: '🎯' },
+          { category: 'Offers', color: '#F59E0B', icon: '💰' },
+          { category: 'Data Ingestion', color: '#3B82F6', icon: '📥' },
+          { category: 'Analytics', color: '#EF4444', icon: '📊' },
+          { category: 'AI/ML Layer', color: '#7C3AED', icon: '🤖' }
         ].map((item) => (
-          <div key={item.category} className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded" style={{ backgroundColor: item.color }} />
-            <span className="text-sm font-medium text-gray-700">{item.category}</span>
+          <div
+            key={item.category}
+            className="flex items-center gap-2 px-4 py-2 bg-white/80 backdrop-blur rounded-xl shadow-sm border border-gray-200"
+          >
+            <span className="text-lg">{item.icon}</span>
+            <div className="w-3 h-3 rounded-full shadow-inner" style={{ backgroundColor: item.color }} />
+            <span className="text-sm font-semibold text-gray-800">{item.category}</span>
           </div>
         ))}
       </div>
 
       {/* ER Diagram */}
-      <div className="overflow-x-auto bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-lg border-2 border-gray-200">
-        <svg
-          ref={svgRef}
-          width="1400"
-          height="750"
-          className="mx-auto cursor-move"
-          style={{ transform: `scale(${zoom})`, transformOrigin: 'center center' }}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+      <div className="relative bg-white rounded-xl border-2 border-gray-200 overflow-auto shadow-inner" style={{ height: '800px' }}>
+        <div
+          style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: 'top left',
+            transition: 'transform 0.2s ease-out',
+            minWidth: '2000px',
+            minHeight: '900px',
+            background: 'radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.03) 0%, transparent 50%), radial-gradient(circle at 70% 70%, rgba(124, 58, 237, 0.03) 0%, transparent 50%)'
+          }}
         >
+          <svg width="2000" height="900" className="w-full h-full">
           <defs>
             <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
               <feDropShadow dx="0" dy="4" stdDeviation="4" floodOpacity="0.15" />
@@ -351,221 +334,288 @@ export function ERDiagram() {
           {/* Relationships */}
           {relationships.map(drawRelationship)}
 
+          {/* Grid Pattern */}
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E5E7EB" strokeWidth="1"/>
+            </pattern>
+          </defs>
+          <rect width="2400" height="1500" fill="url(#grid)" opacity="0.5" />
+
           {/* Tables */}
-          {tables.map((table, idx) => (
-            <g
-              key={table.name}
-              onMouseDown={(e) => handleMouseDown(e, table.name)}
-              style={{ cursor: isDragging && draggedTable === table.name ? 'grabbing' : 'grab' }}
-            >
-              {/* Table Container */}
-              <rect
-                x={table.position.x}
-                y={table.position.y}
-                width="300"
-                height={40 + table.fields.length * 24 + 40}
-                fill="white"
-                stroke={table.color}
-                strokeWidth="3"
-                rx="12"
-                filter={draggedTable === table.name ? 'url(#glow)' : 'url(#shadow)'}
-                style={{ transition: 'filter 0.2s' }}
-              />
-
-              {/* Table Header */}
-              <rect
-                x={table.position.x}
-                y={table.position.y}
-                width="300"
-                height="40"
-                fill={table.color}
-                rx="12"
-              />
-              <rect
-                x={table.position.x}
-                y={table.position.y + 32}
-                width="300"
-                height="8"
-                fill={table.color}
-              />
-
-              <Database
-                x={table.position.x + 12}
-                y={table.position.y + 10}
-                width="20"
-                height="20"
-                stroke="white"
-                fill="white"
-              />
-
-              <text
-                x={table.position.x + 42}
-                y={table.position.y + 25}
-                fontSize="16"
-                fontWeight="bold"
-                fill="white"
+          {tables.map((table, idx) => {
+            const isHovered = hoveredTable === table.name;
+            return (
+              <motion.g
+                key={table.name}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: isHovered ? 1.02 : 1 }}
+                transition={{ duration: 0.2 }}
+                onMouseEnter={() => setHoveredTable(table.name)}
+                onMouseLeave={() => setHoveredTable(null)}
+                style={{ cursor: 'pointer' }}
               >
-                {table.name}
-              </text>
-
-              {/* Action Buttons */}
-              <g className="edit-button">
+                {/* Table Shadow/Background */}
                 <rect
-                  x={table.position.x + 220}
-                  y={table.position.y + 8}
-                  width="32"
-                  height="24"
-                  fill="rgba(255,255,255,0.2)"
-                  rx="4"
-                  style={{ cursor: 'pointer' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingTable(table);
-                  }}
+                  x={table.position.x - 4}
+                  y={table.position.y - 4}
+                  width="328"
+                  height={60 + table.fields.length * 32 + 8}
+                  fill={table.color}
+                  opacity="0.08"
+                  rx="16"
                 />
-                <Edit2
-                  x={table.position.x + 228}
-                  y={table.position.y + 12}
+
+                {/* Table Container */}
+                <rect
+                  x={table.position.x}
+                  y={table.position.y}
+                  width="320"
+                  height={60 + table.fields.length * 32}
+                  fill="white"
+                  stroke={table.color}
+                  strokeWidth="2"
+                  rx="12"
+                  filter="url(#tableShadow)"
+                />
+
+                {/* Table Header with Gradient */}
+                <defs>
+                  <linearGradient id={`grad-${table.name}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style={{ stopColor: table.color, stopOpacity: 1 }} />
+                    <stop offset="100%" style={{ stopColor: table.color, stopOpacity: 0.85 }} />
+                  </linearGradient>
+                </defs>
+                <rect
+                  x={table.position.x}
+                  y={table.position.y}
+                  width="320"
+                  height="60"
+                  fill={`url(#grad-${table.name})`}
+                  rx="12"
+                />
+
+                {/* Icon */}
+                <circle
+                  cx={table.position.x + 28}
+                  cy={table.position.y + 30}
+                  r="16"
+                  fill="rgba(255,255,255,0.25)"
+                />
+                <Database
+                  x={table.position.x + 20}
+                  y={table.position.y + 22}
                   width="16"
                   height="16"
                   stroke="white"
                   fill="none"
-                  strokeWidth="2"
-                  style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                  strokeWidth="2.5"
                 />
-              </g>
 
-              <g className="delete-button">
+                {/* Table Name */}
+                <text
+                  x={table.position.x + 52}
+                  y={table.position.y + 28}
+                  fontSize="18"
+                  fontWeight="700"
+                  fill="white"
+                  letterSpacing="0.5"
+                >
+                  {table.name}
+                </text>
+
+                {/* Category Badge */}
                 <rect
-                  x={table.position.x + 258}
-                  y={table.position.y + 8}
-                  width="32"
-                  height="24"
-                  fill="rgba(255,255,255,0.2)"
-                  rx="4"
-                  style={{ cursor: 'pointer' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleTableDelete(table.name);
-                  }}
-                />
-                <Trash2
-                  x={table.position.x + 266}
-                  y={table.position.y + 12}
-                  width="16"
+                  x={table.position.x + 52}
+                  y={table.position.y + 38}
+                  width={table.category.length * 7 + 12}
                   height="16"
-                  stroke="white"
-                  fill="none"
-                  strokeWidth="2"
-                  style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                  fill="rgba(255,255,255,0.25)"
+                  rx="8"
                 />
-              </g>
+                <text
+                  x={table.position.x + 58}
+                  y={table.position.y + 48}
+                  fontSize="10"
+                  fontWeight="600"
+                  fill="white"
+                >
+                  {table.category}
+                </text>
 
-              {/* Fields */}
-              {table.fields.map((field, fieldIdx) => (
-                <g key={field.name}>
+                {/* Action Buttons */}
+                <g className="edit-button" opacity={isHovered ? 1 : 0.7}>
                   <rect
-                    x={table.position.x}
-                    y={table.position.y + 40 + fieldIdx * 24}
-                    width="300"
-                    height="24"
-                    fill={fieldIdx % 2 === 0 ? '#F9FAFB' : 'white'}
+                    x={table.position.x + 244}
+                    y={table.position.y + 18}
+                    width="28"
+                    height="28"
+                    fill="rgba(255,255,255,0.25)"
+                    rx="8"
+                    style={{ cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingTable(table);
+                    }}
                   />
-
-                  {field.isPrimaryKey && (
-                    <Key
-                      x={table.position.x + 8}
-                      y={table.position.y + 44 + fieldIdx * 24}
-                      width="14"
-                      height="14"
-                      stroke="#F59E0B"
-                      fill="#F59E0B"
-                    />
-                  )}
-
-                  {field.isForeignKey && (
-                    <Link
-                      x={table.position.x + 8}
-                      y={table.position.y + 44 + fieldIdx * 24}
-                      width="14"
-                      height="14"
-                      stroke="#3B82F6"
-                      fill="none"
-                      strokeWidth="2"
-                    />
-                  )}
-
-                  <text
-                    x={table.position.x + (field.isPrimaryKey || field.isForeignKey ? 28 : 12)}
-                    y={table.position.y + 56 + fieldIdx * 24}
-                    fontSize="12"
-                    fill="#374151"
-                    fontWeight={field.isPrimaryKey || field.isForeignKey ? '600' : '400'}
-                  >
-                    {field.name}
-                  </text>
-
-                  <text
-                    x={table.position.x + 285}
-                    y={table.position.y + 56 + fieldIdx * 24}
-                    fontSize="10"
-                    fill="#9CA3AF"
-                    textAnchor="end"
-                  >
-                    {field.type}
-                  </text>
+                  <Edit2
+                    x={table.position.x + 250}
+                    y={table.position.y + 24}
+                    width="16"
+                    height="16"
+                    stroke="white"
+                    fill="none"
+                    strokeWidth="2.5"
+                    style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                  />
                 </g>
-              ))}
 
-              {/* Footer with drag hint */}
-              <rect
-                x={table.position.x}
-                y={table.position.y + 40 + table.fields.length * 24}
-                width="300"
-                height="40"
-                fill="#F9FAFB"
-                rx="0"
-              />
-              <Move
-                x={table.position.x + 135}
-                y={table.position.y + 50 + table.fields.length * 24}
-                width="16"
-                height="16"
-                stroke="#9CA3AF"
-                fill="none"
-                strokeWidth="2"
-              />
-              <text
-                x={table.position.x + 150}
-                y={table.position.y + 63 + table.fields.length * 24}
-                fontSize="10"
-                fill="#9CA3AF"
-                textAnchor="middle"
-              >
-                Drag to move
-              </text>
-            </g>
-          ))}
-        </svg>
+                <g className="delete-button" opacity={isHovered ? 1 : 0.7}>
+                  <rect
+                    x={table.position.x + 280}
+                    y={table.position.y + 18}
+                    width="28"
+                    height="28"
+                    fill="rgba(255,255,255,0.25)"
+                    rx="8"
+                    style={{ cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTableDelete(table.name);
+                    }}
+                  />
+                  <Trash2
+                    x={table.position.x + 286}
+                    y={table.position.y + 24}
+                    width="16"
+                    height="16"
+                    stroke="white"
+                    fill="none"
+                    strokeWidth="2.5"
+                    style={{ cursor: 'pointer', pointerEvents: 'none' }}
+                  />
+                </g>
+
+                {/* Fields */}
+                {table.fields.map((field, fieldIdx) => (
+                  <g key={field.name}>
+                    <rect
+                      x={table.position.x}
+                      y={table.position.y + 60 + fieldIdx * 32}
+                      width="320"
+                      height="32"
+                      fill={fieldIdx % 2 === 0 ? '#FAFAFA' : 'white'}
+                    />
+
+                    {/* Field Icons */}
+                    {field.isPrimaryKey && (
+                      <>
+                        <circle
+                          cx={table.position.x + 18}
+                          cy={table.position.y + 76 + fieldIdx * 32}
+                          r="10"
+                          fill="#FEF3C7"
+                        />
+                        <Key
+                          x={table.position.x + 13}
+                          y={table.position.y + 71 + fieldIdx * 32}
+                          width="10"
+                          height="10"
+                          stroke="#F59E0B"
+                          fill="#F59E0B"
+                        />
+                      </>
+                    )}
+
+                    {field.isForeignKey && (
+                      <>
+                        <circle
+                          cx={table.position.x + 18}
+                          cy={table.position.y + 76 + fieldIdx * 32}
+                          r="10"
+                          fill="#DBEAFE"
+                        />
+                        <Link
+                          x={table.position.x + 13}
+                          y={table.position.y + 71 + fieldIdx * 32}
+                          width="10"
+                          height="10"
+                          stroke="#3B82F6"
+                          fill="none"
+                          strokeWidth="2"
+                        />
+                      </>
+                    )}
+
+                    {/* Field Name */}
+                    <text
+                      x={table.position.x + (field.isPrimaryKey || field.isForeignKey ? 34 : 16)}
+                      y={table.position.y + 80 + fieldIdx * 32}
+                      fontSize="13"
+                      fill="#1E293B"
+                      fontWeight={field.isPrimaryKey || field.isForeignKey ? '700' : '500'}
+                      fontFamily="monospace"
+                    >
+                      {field.name}
+                    </text>
+
+                    {/* Field Type */}
+                    <text
+                      x={table.position.x + 304}
+                      y={table.position.y + 80 + fieldIdx * 32}
+                      fontSize="11"
+                      fill="#64748B"
+                      textAnchor="end"
+                      fontFamily="monospace"
+                    >
+                      {field.type}
+                    </text>
+                  </g>
+                ))}
+              </motion.g>
+            );
+          })}
+          </svg>
+        </div>
       </div>
 
       {/* Legend for Keys */}
-      <div className="mt-6 pt-6 border-t border-gray-200 flex gap-8">
-        <div className="flex items-center gap-2">
-          <Key className="w-4 h-4 text-amber-500" />
-          <span className="text-sm text-gray-600">Primary Key</span>
+      <div className="mt-8 grid grid-cols-4 gap-4">
+        <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-2 bg-amber-50 rounded-lg">
+            <Key className="w-5 h-5 text-amber-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">Primary Key</p>
+            <p className="text-sm text-gray-900 font-bold">Unique ID</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Link className="w-4 h-4 text-blue-500" />
-          <span className="text-sm text-gray-600">Foreign Key</span>
+        <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-2 bg-blue-50 rounded-lg">
+            <Link className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">Foreign Key</p>
+            <p className="text-sm text-gray-900 font-bold">Reference</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-700">1:N</span>
-          <span className="text-sm text-gray-600">One-to-Many</span>
+        <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-2 bg-green-50 rounded-lg">
+            <span className="text-lg font-bold text-green-600">1:N</span>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">Relationship</p>
+            <p className="text-sm text-gray-900 font-bold">One-to-Many</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-700">1:1</span>
-          <span className="text-sm text-gray-600">One-to-One (dashed)</span>
+        <div className="flex items-center gap-3 px-5 py-3 bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-2 bg-purple-50 rounded-lg">
+            <span className="text-lg font-bold text-purple-600">1:1</span>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 font-medium">Relationship</p>
+            <p className="text-sm text-gray-900 font-bold">One-to-One</p>
+          </div>
         </div>
       </div>
 
