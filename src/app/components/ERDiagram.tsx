@@ -31,6 +31,7 @@ export function ERDiagram() {
   const [editingTable, setEditingTable] = useState<Table | null>(null);
   const [isCreatingTable, setIsCreatingTable] = useState(false);
   const [hoveredTable, setHoveredTable] = useState<string | null>(null);
+  const [draggingTable, setDraggingTable] = useState<string | null>(null);
   const [tables, setTables] = useState<Table[]>([
     {
       name: 'products',
@@ -165,6 +166,14 @@ export function ERDiagram() {
     if (confirm(`Are you sure you want to delete table "${tableName}"?`)) {
       setTables(tables.filter(t => t.name !== tableName));
     }
+  };
+
+  const handleTableDrag = (tableName: string, newX: number, newY: number) => {
+    setTables(tables.map(t =>
+      t.name === tableName
+        ? { ...t, position: { x: newX, y: newY } }
+        : t
+    ));
   };
 
   const relationships: Relationship[] = [
@@ -345,20 +354,37 @@ export function ERDiagram() {
           {/* Tables */}
           {tables.map((table, idx) => {
             const isHovered = hoveredTable === table.name;
+            const isDragging = draggingTable === table.name;
             return (
               <motion.g
                 key={table.name}
                 initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: isHovered ? 1.02 : 1 }}
+                animate={{
+                  opacity: 1,
+                  scale: isHovered && !isDragging ? 1.02 : 1,
+                  x: table.position.x,
+                  y: table.position.y
+                }}
+                drag
+                dragMomentum={false}
+                dragElastic={0}
+                whileDrag={{ cursor: 'grabbing', scale: 1.05, opacity: 0.9 }}
+                onDragStart={() => setDraggingTable(table.name)}
+                onDragEnd={(event, info) => {
+                  const newX = table.position.x + info.offset.x / zoom;
+                  const newY = table.position.y + info.offset.y / zoom;
+                  handleTableDrag(table.name, Math.max(0, newX), Math.max(0, newY));
+                  setDraggingTable(null);
+                }}
                 transition={{ duration: 0.2 }}
-                onMouseEnter={() => setHoveredTable(table.name)}
+                onMouseEnter={() => !isDragging && setHoveredTable(table.name)}
                 onMouseLeave={() => setHoveredTable(null)}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
               >
                 {/* Table Shadow/Background */}
                 <rect
-                  x={table.position.x - 4}
-                  y={table.position.y - 4}
+                  x="-4"
+                  y="-4"
                   width="328"
                   height={60 + table.fields.length * 32 + 8}
                   fill={table.color}
@@ -368,8 +394,8 @@ export function ERDiagram() {
 
                 {/* Table Container */}
                 <rect
-                  x={table.position.x}
-                  y={table.position.y}
+                  x="0"
+                  y="0"
                   width="320"
                   height={60 + table.fields.length * 32}
                   fill="white"
@@ -387,8 +413,8 @@ export function ERDiagram() {
                   </linearGradient>
                 </defs>
                 <rect
-                  x={table.position.x}
-                  y={table.position.y}
+                  x="0"
+                  y="0"
                   width="320"
                   height="60"
                   fill={`url(#grad-${table.name})`}
@@ -397,14 +423,14 @@ export function ERDiagram() {
 
                 {/* Icon */}
                 <circle
-                  cx={table.position.x + 28}
-                  cy={table.position.y + 30}
+                  cx="28"
+                  cy="30"
                   r="16"
                   fill="rgba(255,255,255,0.25)"
                 />
                 <Database
-                  x={table.position.x + 20}
-                  y={table.position.y + 22}
+                  x="20"
+                  y="22"
                   width="16"
                   height="16"
                   stroke="white"
@@ -414,8 +440,8 @@ export function ERDiagram() {
 
                 {/* Table Name */}
                 <text
-                  x={table.position.x + 52}
-                  y={table.position.y + 28}
+                  x="52"
+                  y="28"
                   fontSize="18"
                   fontWeight="700"
                   fill="white"
@@ -426,16 +452,16 @@ export function ERDiagram() {
 
                 {/* Category Badge */}
                 <rect
-                  x={table.position.x + 52}
-                  y={table.position.y + 38}
+                  x="52"
+                  y="38"
                   width={table.category.length * 7 + 12}
                   height="16"
                   fill="rgba(255,255,255,0.25)"
                   rx="8"
                 />
                 <text
-                  x={table.position.x + 58}
-                  y={table.position.y + 48}
+                  x="58"
+                  y="48"
                   fontSize="10"
                   fontWeight="600"
                   fill="white"
@@ -446,8 +472,8 @@ export function ERDiagram() {
                 {/* Action Buttons */}
                 <g className="edit-button" opacity={isHovered ? 1 : 0.7}>
                   <rect
-                    x={table.position.x + 244}
-                    y={table.position.y + 18}
+                    x="244"
+                    y="18"
                     width="28"
                     height="28"
                     fill="rgba(255,255,255,0.25)"
@@ -459,8 +485,8 @@ export function ERDiagram() {
                     }}
                   />
                   <Edit2
-                    x={table.position.x + 250}
-                    y={table.position.y + 24}
+                    x="250"
+                    y="24"
                     width="16"
                     height="16"
                     stroke="white"
@@ -472,8 +498,8 @@ export function ERDiagram() {
 
                 <g className="delete-button" opacity={isHovered ? 1 : 0.7}>
                   <rect
-                    x={table.position.x + 280}
-                    y={table.position.y + 18}
+                    x="280"
+                    y="18"
                     width="28"
                     height="28"
                     fill="rgba(255,255,255,0.25)"
@@ -485,8 +511,8 @@ export function ERDiagram() {
                     }}
                   />
                   <Trash2
-                    x={table.position.x + 286}
-                    y={table.position.y + 24}
+                    x="286"
+                    y="24"
                     width="16"
                     height="16"
                     stroke="white"
@@ -500,8 +526,8 @@ export function ERDiagram() {
                 {table.fields.map((field, fieldIdx) => (
                   <g key={field.name}>
                     <rect
-                      x={table.position.x}
-                      y={table.position.y + 60 + fieldIdx * 32}
+                      x="0"
+                      y={60 + fieldIdx * 32}
                       width="320"
                       height="32"
                       fill={fieldIdx % 2 === 0 ? '#FAFAFA' : 'white'}
@@ -511,14 +537,14 @@ export function ERDiagram() {
                     {field.isPrimaryKey && (
                       <>
                         <circle
-                          cx={table.position.x + 18}
-                          cy={table.position.y + 76 + fieldIdx * 32}
+                          cx="18"
+                          cy={76 + fieldIdx * 32}
                           r="10"
                           fill="#FEF3C7"
                         />
                         <Key
-                          x={table.position.x + 13}
-                          y={table.position.y + 71 + fieldIdx * 32}
+                          x="13"
+                          y={71 + fieldIdx * 32}
                           width="10"
                           height="10"
                           stroke="#F59E0B"
@@ -530,14 +556,14 @@ export function ERDiagram() {
                     {field.isForeignKey && (
                       <>
                         <circle
-                          cx={table.position.x + 18}
-                          cy={table.position.y + 76 + fieldIdx * 32}
+                          cx="18"
+                          cy={76 + fieldIdx * 32}
                           r="10"
                           fill="#DBEAFE"
                         />
                         <Link
-                          x={table.position.x + 13}
-                          y={table.position.y + 71 + fieldIdx * 32}
+                          x="13"
+                          y={71 + fieldIdx * 32}
                           width="10"
                           height="10"
                           stroke="#3B82F6"
@@ -549,8 +575,8 @@ export function ERDiagram() {
 
                     {/* Field Name */}
                     <text
-                      x={table.position.x + (field.isPrimaryKey || field.isForeignKey ? 34 : 16)}
-                      y={table.position.y + 80 + fieldIdx * 32}
+                      x={field.isPrimaryKey || field.isForeignKey ? 34 : 16}
+                      y={80 + fieldIdx * 32}
                       fontSize="13"
                       fill="#1E293B"
                       fontWeight={field.isPrimaryKey || field.isForeignKey ? '700' : '500'}
@@ -561,8 +587,8 @@ export function ERDiagram() {
 
                     {/* Field Type */}
                     <text
-                      x={table.position.x + 304}
-                      y={table.position.y + 80 + fieldIdx * 32}
+                      x="304"
+                      y={80 + fieldIdx * 32}
                       fontSize="11"
                       fill="#64748B"
                       textAnchor="end"
